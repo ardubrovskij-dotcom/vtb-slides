@@ -66,7 +66,11 @@ description: Создаёт презентации PowerPoint (.pptx) в фир�
 
 **Выделение в тексте:** `**текст**` → полужирный в фирменном синем (на синих плашках — светло-циановый). Так в шаблоне ВТБ выделяют главное в строке.
 
-**Иконки:** только из фирменного набора ВТБ, 34 шт. (`references/icons.png`): award, bank, briefcase-chart, calculator, calendar, card, case, certificate, check, coins, consultant, cross, document-edit, document-stamp, globe, layers, leader, mail, medal, money, monitor-search, report, search, speedometer, star, strategy, structure, target, team, transform, truck, user-calculator, user-search, wallet. Нет подходящей — не ставь иконку (номер или пусто), не подменяй сторонней.
+**Иконки** — только фирменные ВТБ, два набора:
+1. **Базовые 34** по имени (`references/icons.png`): award, bank, briefcase-chart, calculator, calendar, card, case, certificate, check, coins, consultant, cross, document-edit, document-stamp, globe, layers, leader, mail, medal, money, monitor-search, report, search, speedometer, star, strategy, structure, target, team, transform, truck, user-calculator, user-search, wallet.
+2. **Векторная библиотека, 4 354 иконки** по ID `o-<категория>-NNN` (контурные) или `g-<категория>-NNN` (залитые). 23 категории: finance, business, startup, marketing, smm, charts, tech, internet, ai, dev, files, office, management, teamwork, hr, people-things, education, strategy, productivity, travel, transport, navigation, art. Чтобы выбрать иконку, открой `references/icons/README.md`, затем лист нужной категории (`references/icons/<id>.jpg`): номер написан под иконкой. Иконки вставляются вектором и перекрашиваются (`color`: navy/cyan/white/gray/HEX). На одном слайде используй один стиль — либо `o-`, либо `g-`.
+
+Если подходящей иконки нет, ставь номер или ничего; посторонние иконки не используй.
 
 **Фото:** `assets/photos/` — moscow_city, towers, team, office, mountains, mountains_lake, finance_chart, analytics, globe; можно передать имя или путь к файлу пользователя.
 
@@ -76,7 +80,7 @@ description: Создаёт презентации PowerPoint (.pptx) в фир�
 - Палитра: синий #002882 (доминирует) → циан #00AAFF (акцент, 1 выделение на слайд) → серые для вторичного. Градиенты только внутри фирменной пары синий→тёмно-синий или циан→синий.
 - Фирменный мотив — **косой срез 20°** (плашки, панели KPI, параллелограммы на титулах). Не добавляй другие декоративные полосы, тени-«бары», подчёркивания заголовков.
 - Карточки: белые, тонкий серый контур, мягкая тень. Разделители — тонкие серые линии.
-- Шрифты темы: VTB Group Demi Bold (заголовки) / VTB Group Book (текст). Если у получателя нет шрифтов ВТБ — `"font_mode": "safe"` (всё в Arial).
+- Шрифты темы: VTB Group Demi Bold (заголовки, выделение) / VTB Group Book (текст). Жирность задаётся начертанием Demi Bold, а не флагом «Ж» — библиотека делает это сама. Если файлы шрифтов лежат в `assets/fonts/` (или установлены в систему), подгонка текста считается по метрикам VTB Group. Перед рендером превью выполни `bash <skill>/scripts/install_fonts.sh`, чтобы LibreOffice показал настоящий шрифт. Если у получателя шрифтов ВТБ нет — собирай с `"font_mode": "safe"` (всё в Arial).
 - Текст: основной 14–16 pt, подписи ≥10 pt. Не уменьшай ниже — режь текст или дели слайд.
 - Числа: «12,4 млн», «+18%», неразрывный пробел в тысячах («1 904»). Данные не выдумывай: если цифр нет — спроси или оставь явный плейсхолдер «XX».
 

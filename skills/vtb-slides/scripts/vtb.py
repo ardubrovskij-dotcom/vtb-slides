@@ -88,7 +88,18 @@ def rgb(h):
 
 
 # ---------------------------------------------------------------- text metrics
+FONTS_DIR = os.path.join(ASSETS, "fonts")
+
+
 def _font_file(bold):
+    """Метрики: VTB Group (assets/fonts или установленный в системе), иначе Inter/Liberation/DejaVu."""
+    vtb = "VTB65.otf" if bold else "VTB55.otf"
+    for d in (FONTS_DIR, os.path.expanduser("~/.local/share/fonts/vtb"), os.path.expanduser("~/.fonts"),
+              "/usr/share/fonts/vtb", "/Library/Fonts", os.path.expanduser("~/Library/Fonts"),
+              "C:/Windows/Fonts"):
+        p = os.path.join(d, vtb)
+        if os.path.exists(p):
+            return p
     cands = (["/usr/share/fonts/opentype/inter/Inter-SemiBold.otf",
               "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
               "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"] if bold else
@@ -113,7 +124,15 @@ def _measure(text, pt, bold=False):
     font = _FONTS[key]
     if font is None:
         return len(text) * pt * 0.55 / 72
-    return font.getlength(text) / 100 * pt / 72 * 1.04
+    return font.getlength(text) / 100 * pt / 72 * _SLACK
+
+
+def has_vtb_fonts():
+    f = _font_file(False)
+    return bool(f) and os.path.basename(f).startswith("VTB")
+
+
+_SLACK = 1.02 if has_vtb_fonts() else 1.04
 
 
 def _strip_md(s):
@@ -342,9 +361,11 @@ class Deck:
                 r.text = part[2:-2] if hl else part
                 f = r.font
                 f.size = Pt(size)
-                f.bold = True if hl else bold
+                strong = hl or bold
                 f.color.rgb = rgb(hl_color if hl else color)
-                f.name = font or (HEAD if bold else BODY)
+                f.name = font or (HEAD if strong else BODY)
+                # В теме ВТБ «жирный» = отдельное начертание Demi Bold; флаг b=1 дал бы ложное утолщение.
+                f.bold = strong if (self.font_mode == "safe" or (font and font not in (HEAD, BODY))) else False
         return tb
 
     def shape(self, s, kind, x, y, w, h, fill=None, line=None, line_w=0.75, grad=None, shadow=False,
@@ -450,14 +471,52 @@ class Deck:
         return c
 
     def icon(self, s, name, x, y, size=0.5, color="navy"):
-        """Иконка из фирменного набора ВТБ (assets/icons). color: navy|cyan|white|gray."""
+        """Иконка ВТБ. name — одно из 34 имён базового набора (target, team, …) или ID векторной
+        библиотеки (o-finance-012 — контурная, g-finance-012 — залитая; каталог: references/icons/).
+        color: navy | cyan | white | gray | HEX. Векторные иконки вписываются в квадрат size×size."""
         if not name:
             return None
+        if re.match(r"^[og]-[a-z-]+-\d{3}$", str(name)):
+            return self._vector_icon(s, name, x, y, size, color)
+        if color not in ("navy", "cyan", "white", "gray"):
+            color = "navy"
         p = os.path.join(ICONS, f"{name}-{color}.png")
         if not os.path.exists(p):
             self._warn(s, f"icon {name!r} not found; see references/icons.md")
             return None
         return s.shapes.add_picture(p, E(x), E(y), E(size), E(size))
+
+    def _vector_icon(self, s, iid, x, y, size, color):
+        lib = icon_library()
+        if iid not in lib:
+            self._warn(s, f"icon {iid!r} not in library; see references/icons/")
+            return None
+        it = lib[iid]
+        hexc = {"navy": NAVY, "cyan": CYAN, "white": WHITE, "gray": GRAY}.get(color, str(color).lstrip("#").upper())
+        el = etree.fromstring(f'<r xmlns:a="{_NS_A}" xmlns:p="{_NS_P}" xmlns:r="{_NS_R}">{it["xml"]}</r>')[0]
+        for clr in list(el.iter(qn("a:srgbClr"), qn("a:schemeClr"))):
+            if clr.get("val", "").upper() in ("FFFFFF", "BG1", "LT1"):
+                continue
+            new = etree.Element(qn("a:srgbClr"))
+            new.set("val", hexc)
+            clr.getparent().replace(clr, new)
+        k = size / max(it["w"], it["h"])
+        w, h = it["w"] * k, it["h"] * k
+        xf = el.find("./p:spPr/a:xfrm", _NSM)
+        if xf is None:
+            xf = el.find("./p:grpSpPr/a:xfrm", _NSM)
+        xf.find("a:off", _NSM).set("x", str(int((x + (size - w) / 2) * EMU)))
+        xf.find("a:off", _NSM).set("y", str(int((y + (size - h) / 2) * EMU)))
+        xf.find("a:ext", _NSM).set("cx", str(int(w * EMU)))
+        xf.find("a:ext", _NSM).set("cy", str(int(h * EMU)))
+        tree = s.shapes._spTree
+        nid = max([int(c.get("id")) for c in tree.iter(qn("p:cNvPr"))] + [1]) + 1
+        for c in el.iter(qn("p:cNvPr")):
+            c.set("id", str(nid))
+            c.set("name", f"Icon {iid}")
+            nid += 1
+        tree.append(el)
+        return el
 
     def circle(self, s, x, y, d, fill=None, line=None, line_w=0.75, grad=None, shadow=False, alpha=None):
         return self.shape(s, MSO_SHAPE.OVAL, x, y, d, d, fill=fill, line=line, line_w=line_w, grad=grad,
@@ -1496,7 +1555,7 @@ class Deck:
                 r_.text = txt.strip("*") if bold else txt
                 r_.font.size = Pt(fs)
                 r_.font.name = HEAD if (hdr or bold or grp) else BODY
-                r_.font.bold = bool(hdr or bold or grp)
+                r_.font.bold = bool(hdr or bold or grp) and self.font_mode == "safe"
                 r_.font.color.rgb = rgb(WHITE if (hdr or grp) else (NAVY if (hlc or bold or j == 0) else TEXT))
                 p.alignment = PP_ALIGN.LEFT if j == 0 else PP_ALIGN.CENTER
                 _cell_borders(cell, bottom=LINE if not hdr else NAVY)
@@ -1673,6 +1732,34 @@ class Deck:
 
 
 # ---------------------------------------------------------------- module helpers
+_NS_A = "http://schemas.openxmlformats.org/drawingml/2006/main"
+_NS_P = "http://schemas.openxmlformats.org/presentationml/2006/main"
+_NS_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+_NSM = {"a": _NS_A, "p": _NS_P}
+_ICON_LIB = None
+
+
+def icon_library():
+    """Векторная библиотека иконок ВТБ: {id: {w, h, xml}} (4 354 шт.)."""
+    global _ICON_LIB
+    if _ICON_LIB is None:
+        import gzip
+        import json
+        with gzip.open(os.path.join(ASSETS, "icons_lib.json.gz"), "rt", encoding="utf8") as f:
+            _ICON_LIB = json.load(f)
+    return _ICON_LIB
+
+
+def list_icons(category=None, style=None):
+    """ID иконок, фильтр по категории (finance, tech, …) и стилю ('o' контур / 'g' заливка)."""
+    out = []
+    for k in icon_library():
+        st, rest = k.split("-", 1)
+        cat = rest.rsplit("-", 1)[0]
+        if (category is None or cat == category) and (style is None or st == style):
+            out.append(k)
+    return sorted(out)
+
 def _mix(c1, c2, t):
     a = [int(c1[i:i + 2], 16) for i in (0, 2, 4)]
     b = [int(c2[i:i + 2], 16) for i in (0, 2, 4)]

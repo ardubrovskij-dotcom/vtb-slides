@@ -1,2 +1,5 @@
 __pycache__/
 *.pyc
+# Шрифты VTB Group лицензированы ParaType — не публикуются
+skills/vtb-slides/assets/fonts/*
+!skills/vtb-slides/assets/fonts/README.md

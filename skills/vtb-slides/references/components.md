@@ -219,7 +219,9 @@ Closed polygon from (x, y) inch points.
 
 ### `icon(s, name, x, y, size=0.5, color='navy')`
 
-Иконка из фирменного набора ВТБ (assets/icons). color: navy|cyan|white|gray.
+Иконка ВТБ. name — одно из 34 имён базового набора (target, team, …) или ID векторной
+библиотеки (o-finance-012 — контурная, g-finance-012 — залитая; каталог: references/icons/).
+color: navy | cyan | white | gray | HEX. Векторные иконки вписываются в квадрат size×size.
 
 ### `picture(s, path, x, y, w, h, circle=False)`
 
@@ -252,6 +254,25 @@ Picture cropped to fill w x h (center crop); circle=True -> round mask.
 ### `save(path)`
 
 
+
+
+## Функции модуля
+
+### `icon_library()`
+
+Векторная библиотека иконок ВТБ: {id: {w, h, xml}} (4 354 шт.).
+
+### `list_icons(category=None, style=None)`
+
+ID иконок, фильтр по категории (finance, tech, …) и стилю ('o' контур / 'g' заливка).
+
+### `has_vtb_fonts()`
+
+
+
+### `photo_path(p)`
+
+Path or name of a brand photo from assets/photos (moscow_city, towers, team, office, ...).
 
 ## Константы цвета
 
